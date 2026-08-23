@@ -1,0 +1,7 @@
+# Temporal 开发环境动态配置（对齐 temporalio/docker-compose 官方 development-sql.yaml）。
+limit.maxIDLength:
+  - value: 255
+    constraints: {}
+system.forceSearchAttributesCacheRefreshOnRead:
+  - value: true # 仅开发环境；生产禁开。
+    constraints: {}

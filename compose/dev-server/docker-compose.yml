@@ -1,0 +1,107 @@
+# 是我的家 · dev ECS（121.89.85.150）中间件栈——dev-local 的服务器变体。
+# 红线：该机同时跑着 aidcp 与 isales 的生产服务，只做加法——
+#   1) 部署前必须确认 15432/16379/7233/8233 空闲、内存/磁盘余量足够（见 README 检查清单）；
+#   2) 全部端口只绑 127.0.0.1，不对公网暴露（UI 走 SSH 隧道）；
+#   3) 各容器设内存上限，不与既有服务抢资源。
+# 口令经 .env 注入（.env 不入库，模板见 .env.example）。
+name: ishome-dev
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: ishome-dev-postgres
+    restart: unless-stopped
+    mem_limit: 1g
+    environment:
+      POSTGRES_USER: ishome
+      POSTGRES_PASSWORD: ${ISHOME_PG_PASSWORD:?请在 .env 设置 ISHOME_PG_PASSWORD}
+      POSTGRES_DB: ishome
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ishome -d ishome"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks: [ishome-dev]
+
+  redis:
+    image: redis:7
+    container_name: ishome-dev-redis
+    restart: unless-stopped
+    mem_limit: 256m
+    ports:
+      - "127.0.0.1:16379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks: [ishome-dev]
+
+  temporal:
+    image: temporalio/auto-setup:1.29.7
+    container_name: ishome-dev-temporal
+    restart: unless-stopped
+    mem_limit: 1g
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: "5432"
+      POSTGRES_USER: ishome
+      POSTGRES_PWD: ${ISHOME_PG_PASSWORD:?请在 .env 设置 ISHOME_PG_PASSWORD}
+      POSTGRES_SEEDS: postgres
+      DBNAME: temporal
+      VISIBILITY_DBNAME: temporal_visibility
+      SKIP_DB_CREATE: "true"
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CLI_ADDRESS: temporal:7233
+    ports:
+      - "127.0.0.1:7233:7233"
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig:ro
+    networks: [ishome-dev]
+
+  temporal-admin-tools:
+    image: temporalio/admin-tools:1.29.7-tctl-1.18.4-cli-1.7.2
+    container_name: ishome-dev-temporal-admin-tools
+    restart: unless-stopped
+    mem_limit: 256m
+    depends_on: [temporal]
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CLI_ADDRESS: temporal:7233
+    stdin_open: true
+    tty: true
+    networks: [ishome-dev]
+
+  temporal-ui:
+    image: temporalio/ui:2.53.3
+    container_name: ishome-dev-temporal-ui
+    restart: unless-stopped
+    mem_limit: 256m
+    depends_on: [temporal]
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "127.0.0.1:8233:8080"
+    networks: [ishome-dev]
+
+volumes:
+  pgdata:
+    name: ishome-dev-pgdata
+  redisdata:
+    name: ishome-dev-redisdata
+
+networks:
+  ishome-dev:
+    name: ishome-dev-net

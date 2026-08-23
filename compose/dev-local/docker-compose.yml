@@ -1,0 +1,100 @@
+# 是我的家 · 本地开发中间件栈（Temporal + Postgres + Redis）
+# 端口约定：本机 5432/6379 已被其它项目（tommax-dev）占用，故 PG=15432、Redis=16379；
+# Temporal gRPC=7233、Temporal UI=8233。改动端口须同步更新 README 端口表。
+name: ishome-dev
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: ishome-dev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ishome
+      POSTGRES_PASSWORD: ${ISHOME_PG_PASSWORD:-ishome-local-dev}
+      POSTGRES_DB: ishome
+    ports:
+      - "15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 初始化脚本：额外创建 temporal / temporal_visibility 两库（配合下方 SKIP_DB_CREATE=true）
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ishome -d ishome"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks: [ishome-dev]
+
+  redis:
+    image: redis:7
+    container_name: ishome-dev-redis
+    restart: unless-stopped
+    ports:
+      - "16379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks: [ishome-dev]
+
+  temporal:
+    image: temporalio/auto-setup:1.29.7
+    container_name: ishome-dev-temporal
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12            # auto-setup 的 PG 驱动名固定写 postgres12（≥PG12 均用它）
+      DB_PORT: "5432"           # 容器网络内直连 postgres:5432，与宿主机映射端口无关
+      POSTGRES_USER: ishome
+      POSTGRES_PWD: ${ISHOME_PG_PASSWORD:-ishome-local-dev}
+      POSTGRES_SEEDS: postgres
+      DBNAME: temporal
+      VISIBILITY_DBNAME: temporal_visibility
+      SKIP_DB_CREATE: "true"    # 两库已由 initdb 脚本建好，auto-setup 只做 schema 初始化
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CLI_ADDRESS: temporal:7233
+    ports:
+      - "7233:7233"
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig:ro
+    networks: [ishome-dev]
+
+  temporal-admin-tools:
+    image: temporalio/admin-tools:1.29.7-tctl-1.18.4-cli-1.7.2
+    container_name: ishome-dev-temporal-admin-tools
+    restart: unless-stopped
+    depends_on: [temporal]
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CLI_ADDRESS: temporal:7233
+    stdin_open: true
+    tty: true
+    networks: [ishome-dev]
+
+  temporal-ui:
+    image: temporalio/ui:2.53.3
+    container_name: ishome-dev-temporal-ui
+    restart: unless-stopped
+    depends_on: [temporal]
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8233:8080"
+    networks: [ishome-dev]
+
+volumes:
+  pgdata:
+    name: ishome-dev-pgdata
+  redisdata:
+    name: ishome-dev-redisdata
+
+networks:
+  ishome-dev:
+    name: ishome-dev-net
