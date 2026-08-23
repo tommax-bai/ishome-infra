@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# 本地 pre-push 质量门（云端 CI 因账号计费停用期间的替代把关）。
+# 新 clone 后需执行一次：git config core.hooksPath .githooks
+# 紧急绕过：git push --no-verify（仅限确认过风险时使用）。
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if command -v terraform >/dev/null 2>&1; then
+  echo "== pre-push: terraform fmt -check"
+  terraform fmt -check -recursive terraform
+else
+  echo "== pre-push: terraform not installed on this machine, skip fmt check"
+fi
+echo "== pre-push: OK"

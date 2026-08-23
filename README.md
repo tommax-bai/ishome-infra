@@ -44,3 +44,7 @@ gateway/         # 网关声明式配置（见 gateway/README.md）
 ## 状态
 
 骨架阶段：目录与纪律先行，Terraform 模块与 charts 待 ★ 项拍板后填充。
+
+## 本地质量门（pre-push）
+
+云端 CI 停用期间的本地把关：push 前自动跑本仓全套检查。新 clone 后执行一次 `git config core.hooksPath .githooks` 启用；紧急绕过用 `git push --no-verify`。
