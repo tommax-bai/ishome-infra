@@ -14,6 +14,26 @@ model_list:
       api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
       api_key: os.environ/DASHSCOPE_API_KEY
 
+  # 图像生成（火山引擎方舟 / 即梦 Seedream；2026-08-23 开通并实测：文生图与图生图均通，
+  # 图生图保构图——atmosphere-visual 要求母版几何不变、realism-pass 要求底渲结构不变，故适配）。
+  # drop_params 单模型关掉：图生图的 image / watermark / size:"2K" 非 OpenAI 标准参数，丢了就退化成文生图。
+  - model_name: atmosphere-visual.default       # 风格化交付图（母版+模板声明 → 交付图）
+    litellm_params:
+      model: openai/doubao-seedream-5-0-pro-260628
+      api_base: https://ark.cn-beijing.volces.com/api/v3
+      api_key: os.environ/ARK_API_KEY
+      drop_params: false
+    model_info:
+      mode: image_generation
+  - model_name: realism-pass.default            # 生成式写实化（三维底渲 → 写实图）
+    litellm_params:
+      model: openai/doubao-seedream-5-0-pro-260628
+      api_base: https://ark.cn-beijing.volces.com/api/v3
+      api_key: os.environ/ARK_API_KEY
+      drop_params: false
+    model_info:
+      mode: image_generation
+
 litellm_settings:
   drop_params: true
 
