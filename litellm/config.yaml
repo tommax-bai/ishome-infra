@@ -1,0 +1,21 @@
+# LiteLLM 网关配置（变化轴 3：生成模型供应商——该轴的 adapter 层就是本网关，规范 §5.2）。
+# 纪律：业务代码只引用任务级逻辑模型名（{任务}.{variant}）；逻辑名→物理 model_id 的映射只在本文件。
+# 换模型 = 改本文件，不改代码。物理凭证经环境变量注入（~/.ishome/llm-local.env，不入库）。
+# TODO(langfuse)：Langfuse 逐会话成本追踪接入（自托管部署后在此加 success_callback）。
+model_list:
+  - model_name: design-orchestrator.default   # 设计会话主编排（质量优先）
+    litellm_params:
+      model: openai/qwen-plus
+      api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api_key: os.environ/DASHSCOPE_API_KEY
+  - model_name: design-intent.default          # 意图路由/输入归一化（低延迟低成本）
+    litellm_params:
+      model: openai/qwen-flash
+      api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api_key: os.environ/DASHSCOPE_API_KEY
+
+litellm_settings:
+  drop_params: true
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
