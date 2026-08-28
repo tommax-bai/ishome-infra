@@ -13,6 +13,11 @@ model_list:
       model: openai/qwen-flash
       api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
       api_key: os.environ/DASHSCOPE_API_KEY
+  - model_name: report-unit-compose.default    # 报告成文线·单元成文（reportgen，卡片写作，质量优先）
+    litellm_params:
+      model: openai/qwen-plus
+      api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api_key: os.environ/DASHSCOPE_API_KEY
 
   # 图像生成（火山引擎方舟 / 即梦 Seedream；2026-08-23 开通并实测：文生图与图生图均通，
   # 图生图保构图——atmosphere-visual 要求母版几何不变、realism-pass 要求底渲结构不变，故适配）。
