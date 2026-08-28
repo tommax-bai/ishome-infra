@@ -18,6 +18,14 @@ model_list:
       model: openai/qwen-plus
       api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
       api_key: os.environ/DASHSCOPE_API_KEY
+  # 判官层（图 v0.2 §3 出口过检第二道）：读规则层放过的卡片，按 release 里的 cr-+反例样例只报编号。
+  # 与写作同底模是已知风险（判官与写手同源必漂，规则 4.17）——防漂移不靠换模型，靠三道入册门禁
+  # （种子集回归 / 观察态 / 每轮上限）。换判官模型 = 只改这一行，不动代码。
+  - model_name: report-unit-judge.default      # 报告成文线·单元判官（reportgen，只判不写）
+    litellm_params:
+      model: openai/qwen-plus
+      api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api_key: os.environ/DASHSCOPE_API_KEY
 
   # 图像生成（火山引擎方舟 / 即梦 Seedream；2026-08-23 开通并实测：文生图与图生图均通，
   # 图生图保构图——atmosphere-visual 要求母版几何不变、realism-pass 要求底渲结构不变，故适配）。
