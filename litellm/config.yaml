@@ -36,6 +36,17 @@ model_list:
       api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
       api_key: os.environ/DASHSCOPE_API_KEY
 
+  # 户型图解析（获客线第一步"特征能被推出来"）：视觉模型直读户型图 → 户型特征标记 + 依据。
+  # 视觉任务与文本任务分逻辑名（变化轴 3：{任务}.{variant}）——换视觉模型不牵动会话与报告两线。
+  # 纪律：本任务只出标记与依据，**一个数字都不出**（尺寸/面积/比例由确定性代码在标定链路算，
+  # 红线"数字不由 LLM 决定"）；产出的标记键由解析侧按 contracts `rulebook/layout_features.json`
+  # 闭集校验，越界响亮失败。
+  - model_name: floorplan-parse.default         # 户型图解析·特征标记（genpipe-worker，视觉直读）
+    litellm_params:
+      model: openai/qwen3-vl-plus
+      api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api_key: os.environ/DASHSCOPE_API_KEY
+
   # 图像生成（火山引擎方舟 / 即梦 Seedream；2026-08-23 开通并实测：文生图与图生图均通，
   # 图生图保构图——atmosphere-visual 要求母版几何不变、realism-pass 要求底渲结构不变，故适配）。
   # drop_params 单模型关掉：图生图的 image / watermark / size:"2K" 非 OpenAI 标准参数，丢了就退化成文生图。
