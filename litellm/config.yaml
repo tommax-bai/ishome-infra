@@ -59,6 +59,14 @@ model_list:
       api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
       api_key: os.environ/DASHSCOPE_API_KEY
 
+  # 出图判官（judgebench）：拿生成图对照派发数据判"错没错"，只判不写、只出编号与依据；
+  # 与出图模型（Seedream/火山）不同厂商——规则 4.17"判官与写手同源自评分必漂"的落地。
+  - model_name: image-judge.default            # 出图判官（judgebench，视觉直读，判官与写手不同源）
+    litellm_params:
+      model: openai/qwen3-vl-plus
+      api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api_key: os.environ/DASHSCOPE_API_KEY
+
   # 图像生成（火山引擎方舟 / 即梦 Seedream；2026-08-23 开通并实测：文生图与图生图均通，
   # 图生图保构图——atmosphere-visual 要求母版几何不变、realism-pass 要求底渲结构不变，故适配）。
   # drop_params 单模型关掉：图生图的 image / watermark / size:"2K" 非 OpenAI 标准参数，丢了就退化成文生图。
